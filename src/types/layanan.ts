@@ -1,4 +1,6 @@
 // Types for layanan/services page
+import { ComponentType } from 'react';
+
 export interface LayananItem {
   id: string;
   title: string;
@@ -8,10 +10,11 @@ export interface LayananItem {
   biaya: string;
   icon: string;
   color: string;
+  hasForm?: boolean;
 }
 
 export interface ContactItem {
-  icon: React.ComponentType<any>;
+  icon: ComponentType<{ className?: string }>;
   text: string;
   label: string;
   color: string;
@@ -53,4 +56,25 @@ export interface ModalState {
   isOpen: boolean;
   type: string;
   title: string;
+}
+
+export interface SKUFormData {
+  nama_orang_2: string;
+  tempat_tanggal_lahir: string;
+  nik: string;
+  agama: string;
+  pekerjaan: string;
+  status: string;
+  alamat: string;
+  nama_usaha: string;
+  tempat_usaha: string;
+  nama_nagari: string;
+  nama_kecamatan: string;
+  nama_kabupaten: string;
+  nomorHP: string; // Tambahkan field nomor HP
+  // File uploads
+  ktp?: File | null;
+  kk?: File | null;
+  pengantar_rt_rw?: File | null;
+  foto_tempat_usaha?: File | null;
 }

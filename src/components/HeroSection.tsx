@@ -1,139 +1,68 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
-import { kepalaJorongData, sekretarisData, waliNagariData } from '@/data/pejabat';
-import { faqData } from '@/data/faq';
 import { featuresData } from '@/data/features';
-import { mockNewsData } from '@/data/newsData';
+import { useNewsData, usePejabatData, useFaqData } from '@/context/DataContext';
 import NewsCard from '@/components/berita/NewsCard';
 import FAQCard from '@/components/FAQCard';
 import FeatureCard from '@/components/FeatureCard';
 
-interface PejabatData {
-  id: number;
-  name: string;
+// Extended interface untuk news data yang mungkin memiliki properti tambahan
+interface ExtendedNewsData {
+  id: string;
   title: string;
-  image: string;
-  jorong?: string;
-  description: string;
-}
-
-interface FAQData {
-  id: number;
-  question: string;
-  answer: string;
-  category: string;
+  content: string;
+  date: string;
+  image?: string;
+  author?: string;
+  category?: string;
+  excerpt?: string;
+  isFeatured?: boolean;
+  views?: number;
+  categoryColor?: string;
+  backgroundGradient?: string;
+  emoji?: string;
+  imageSrc?: string;
+  href?: string;
 }
 
 export default function HeroSection() {
-  // Combined state for all officials
+  // Use centralized data from context
+  const { data: rawNewsData } = useNewsData();
+  const { data: pejabatData } = usePejabatData();
+  const { data: currentFaqData } = useFaqData();
+  
+  // Convert news data to expected format (sama seperti di halaman berita)
+  const newsData = useMemo(() => 
+    rawNewsData.map(news => {
+      const rawNewsItem = news as ExtendedNewsData;
+      
+      return {
+        ...news,
+        href: `/berita/${news.id}`,
+        excerpt: rawNewsItem.excerpt || 
+                (news.content ? news.content.substring(0, 150) + '...' : 'Tidak ada deskripsi tersedia'),
+        views: rawNewsItem.views || 0,
+        category: news.category || 'Berita',
+        categoryColor: rawNewsItem.categoryColor || 'bg-blue-500',
+        backgroundGradient: rawNewsItem.backgroundGradient || 'bg-gradient-to-r from-blue-500 to-purple-600',
+        emoji: rawNewsItem.emoji || '📰',
+        // Paksa semua berita di halaman utama menggunakan layout card biasa (bukan featured)
+        isFeatured: false,
+        imageSrc: news.image || rawNewsItem.imageSrc
+      };
+    }), 
+    [rawNewsData]
+  );
+  
+  // Component state
   const [pejabatIndex, setPejabatIndex] = useState(0);
   const [pejabatAnimate, setPejabatAnimate] = useState<'in' | 'out'>('in');
-  const [allPejabatData, setAllPejabatData] = useState<PejabatData[]>([]);
-  const [currentFaqData, setCurrentFaqData] = useState<FAQData[]>([]);
-  
-  const [expandedFaqs, setExpandedFaqs] = useState<number[]>([]);
+  const [expandedFaqs, setExpandedFaqs] = useState<(string | number)[]>([]);
 
-  // Load data from localStorage or use default data
-  useEffect(() => {
-    // Load Pejabat data
-    const savedPejabat = localStorage.getItem('pejabatData');
-    if (savedPejabat) {
-      try {
-        const parsedPejabat = JSON.parse(savedPejabat);
-        setAllPejabatData(parsedPejabat);
-      } catch (error) {
-        console.error('Error parsing pejabat data:', error);
-        // Fallback to default data
-        setAllPejabatData([
-          waliNagariData,
-          ...kepalaJorongData,
-          ...sekretarisData
-        ]);
-      }
-    } else {
-      // Use default data
-      setAllPejabatData([
-        waliNagariData,
-        ...kepalaJorongData,
-        ...sekretarisData
-      ]);
-    }
-
-    // Load FAQ data
-    const savedFaq = localStorage.getItem('faqData');
-    if (savedFaq) {
-      try {
-        const parsedFaq = JSON.parse(savedFaq);
-        setCurrentFaqData(parsedFaq);
-      } catch (error) {
-        console.error('Error parsing FAQ data:', error);
-        // Fallback to default data
-        setCurrentFaqData(faqData);
-      }
-    } else {
-      // Use default data
-      setCurrentFaqData(faqData);
-    }
-
-    // Listen for localStorage changes
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'pejabatData' && e.newValue) {
-        try {
-          const parsedPejabat = JSON.parse(e.newValue);
-          setAllPejabatData(parsedPejabat);
-        } catch (error) {
-          console.error('Error parsing updated pejabat data:', error);
-        }
-      }
-      if (e.key === 'faqData' && e.newValue) {
-        try {
-          const parsedFaq = JSON.parse(e.newValue);
-          setCurrentFaqData(parsedFaq);
-        } catch (error) {
-          console.error('Error parsing updated FAQ data:', error);
-        }
-      }
-    };
-
-    // Listen for custom events (for same-tab updates)
-    const handleCustomUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail.type === 'pejabat') {
-        const savedPejabat = localStorage.getItem('pejabatData');
-        if (savedPejabat) {
-          try {
-            const parsedPejabat = JSON.parse(savedPejabat);
-            setAllPejabatData(parsedPejabat);
-          } catch (error) {
-            console.error('Error parsing updated pejabat data:', error);
-          }
-        }
-      }
-      if (customEvent.detail.type === 'faq') {
-        const savedFaq = localStorage.getItem('faqData');
-        if (savedFaq) {
-          try {
-            const parsedFaq = JSON.parse(savedFaq);
-            setCurrentFaqData(parsedFaq);
-          } catch (error) {
-            console.error('Error parsing updated FAQ data:', error);
-          }
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('dataUpdated', handleCustomUpdate);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('dataUpdated', handleCustomUpdate);
-    };
-  }, []);
-
-  const toggleFaq = (index: number) => {
+  const toggleFaq = (index: string | number) => {
     setExpandedFaqs(prev => 
       prev.includes(index) 
         ? prev.filter(i => i !== index) 
@@ -143,18 +72,18 @@ export default function HeroSection() {
   
   // Effect for Perangkat Nagari rotation with slide transition
   useEffect(() => {
-    if (allPejabatData.length === 0) return; // Safety check
+    if (pejabatData.length === 0) return; // Safety check
     
     const cycle = () => {
       setPejabatAnimate('out');
       setTimeout(() => {
-        setPejabatIndex(prev => (prev + 1) % allPejabatData.length);
+        setPejabatIndex(prev => (prev + 1) % pejabatData.length);
         setPejabatAnimate('in');
       }, 600); // Slower transition time
     };
     const interval = setInterval(cycle, 8000); // More time between changes
     return () => clearInterval(interval);
-  }, [allPejabatData.length]);
+  }, [pejabatData.length]);
 
   return (
     <div className="relative bg-gray-900 text-white">
@@ -259,7 +188,7 @@ export default function HeroSection() {
             </div>
             
             {/* Single Struktur Card with Slider */}
-            {allPejabatData.length > 0 ? (
+            {pejabatData.length > 0 ? (
             <div className="w-full overflow-hidden">
               <div className="flex flex-col md:flex-row gap-4 md:gap-8 md:items-stretch max-w-full">
                 {/* Left side - Photo Card with fixed 3:4 aspect ratio */}
@@ -270,8 +199,8 @@ export default function HeroSection() {
                         pejabatAnimate === 'out' ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
                       }`}>
                         <Image
-                          src={allPejabatData[pejabatIndex].image}
-                          alt={allPejabatData[pejabatIndex].name}
+                          src={pejabatData[pejabatIndex].image}
+                          alt={pejabatData[pejabatIndex].name}
                           fill
                           style={{ objectFit: 'cover' }}
                           className="rounded-2xl"
@@ -293,7 +222,7 @@ export default function HeroSection() {
                       
                       {/* Primary heading - Person name */}
                       <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-yellow-400 truncate">
-                        {allPejabatData[pejabatIndex].name}
+                        {pejabatData[pejabatIndex].name}
                       </h3>
                       
                       {/* Yellow divider */}
@@ -301,13 +230,13 @@ export default function HeroSection() {
                       
                       {/* Position title */}
                       <p className="text-xl md:text-2xl font-bold text-white truncate">
-                        {allPejabatData[pejabatIndex].title}
+                        {pejabatData[pejabatIndex].title}
                       </p>
                       
                       {/* Jorong info if available */}
-                      {allPejabatData[pejabatIndex].jorong && (
+                      {pejabatData[pejabatIndex].jorong && (
                         <p className="text-sm text-yellow-200 font-medium tracking-wide uppercase truncate">
-                          {allPejabatData[pejabatIndex].jorong}
+                          {pejabatData[pejabatIndex].jorong}
                         </p>
                       )}
                     </div>
@@ -323,7 +252,7 @@ export default function HeroSection() {
                       WebkitBoxOrient: 'vertical',
                       maxHeight: '7.5rem' // Fallback for line-clamp
                     }}>
-                      {allPejabatData[pejabatIndex].description}
+                      {pejabatData[pejabatIndex].description}
                     </p>
                   </div>
                   {/* Navigation buttons with improved styling - now aligned to bottom */}
@@ -334,7 +263,7 @@ export default function HeroSection() {
                         setPejabatAnimate('out');
                         setTimeout(() => {
                           setPejabatIndex(prev => 
-                            prev === 0 ? allPejabatData.length - 1 : prev - 1
+                            prev === 0 ? pejabatData.length - 1 : prev - 1
                           );
                           setPejabatAnimate('in');
                         }, 300);
@@ -346,14 +275,14 @@ export default function HeroSection() {
                       <span className="font-medium">Sebelumnya</span>
                     </button>
                     <div className="text-sm text-gray-400">
-                      {pejabatIndex + 1} dari {allPejabatData.length}
+                      {pejabatIndex + 1} dari {pejabatData.length}
                     </div>
                     <button
                       className="flex items-center gap-2 text-yellow-100/80 hover:text-yellow-400 transition-all duration-300 group"
                       onClick={() => {
                         setPejabatAnimate('out');
                         setTimeout(() => {
-                          setPejabatIndex(prev => (prev + 1) % allPejabatData.length);
+                          setPejabatIndex(prev => (prev + 1) % pejabatData.length);
                           setPejabatAnimate('in');
                         }, 300);
                       }}
@@ -393,16 +322,35 @@ export default function HeroSection() {
             
             {/* Show only 3 latest news for both desktop and mobile */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              {mockNewsData
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .slice(0, 3)
-                .map((news) => (
-                  <NewsCard key={news.id} {...news} />
-                ))}
+              {newsData && newsData.length > 0 ? (
+                newsData
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 3)
+                  .map((news) => (
+                    <NewsCard 
+                      key={news.id}
+                      href={news.href}
+                      title={news.title}
+                      excerpt={news.excerpt}
+                      date={news.date}
+                      views={news.views}
+                      category={news.category}
+                      categoryColor={news.categoryColor}
+                      backgroundGradient={news.backgroundGradient}
+                      emoji={news.emoji}
+                      isFeatured={news.isFeatured}
+                      imageSrc={news.imageSrc}
+                    />
+                  ))
+              ) : (
+                <div className="col-span-full text-center text-gray-300 py-8">
+                  <p>Tidak ada berita terbaru saat ini</p>
+                </div>
+              )}
             </div>
             
             <div className="text-center mt-10">
-              <a 
+              <Link 
                 href="/berita" 
                 className="inline-flex items-center px-6 py-3 border-white border-2 text-base font-semibold rounded-md text-white bg-transparent hover:bg-white hover:text-black transition"
               >
@@ -410,7 +358,7 @@ export default function HeroSection() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
-              </a>
+              </Link>
             </div>
           </div>
         </section>

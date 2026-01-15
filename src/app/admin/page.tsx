@@ -13,7 +13,8 @@ import {
   DocumentTextIcon,
   PhotoIcon,
   MapPinIcon,
-  CalendarIcon
+  CalendarIcon,
+  ChatBubbleLeftEllipsisIcon
 } from '@heroicons/react/24/outline';
 
 // Import default data for each module
@@ -36,7 +37,8 @@ export default function AdminDashboard() {
     berita: 0,
     jorong: 0,
     galeri: 0,
-    agenda: 0
+    agenda: 0,
+    feedback: 0
   });
 
   useEffect(() => {
@@ -64,7 +66,8 @@ export default function AdminDashboard() {
           berita: 0,
           jorong: 0,
           galeri: 0,
-          agenda: 0
+          agenda: 0,
+          feedback: 0
         };
         
         // Try to get data from Firestore with proper error handling
@@ -133,6 +136,15 @@ export default function AdminDashboard() {
           mockNewsData;
         if (isMounted) countsData.berita = newsItems.length;
         
+        // Fetch feedback data
+        try {
+          const feedbackSnapshot = await getDocs(collection(db, 'feedback'));
+          if (isMounted) countsData.feedback = feedbackSnapshot.docs.length;
+        } catch (error) {
+          console.warn('Error fetching feedback data:', error);
+          if (isMounted) countsData.feedback = 0;
+        }
+        
         // Update state only if component is still mounted
         if (isMounted) {
           setCounts(countsData);
@@ -162,7 +174,8 @@ export default function AdminDashboard() {
           berita: newsItems.length,
           jorong: jorongItems.length,
           galeri: galeriItems.length,
-          agenda: agendaItems.length
+          agenda: agendaItems.length,
+          feedback: 0
         });
         setLoading(false);
       }
@@ -324,6 +337,15 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+          <div className="bg-gray-800 rounded-lg p-6">
+            <div className="flex items-center">
+              <ChatBubbleLeftEllipsisIcon className="w-8 h-8 text-purple-400" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-400">Total Feedback</p>
+                <p className="text-2xl font-bold text-white">{counts.feedback}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Management Cards */}
@@ -454,21 +476,49 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Coming Soon Cards */}
-          <div className="bg-gray-800 rounded-lg p-6 opacity-50">
-            <div className="flex items-center mb-4">
-              <DocumentTextIcon className="w-8 h-8 text-gray-400" />
-              <h3 className="text-xl font-semibold text-gray-400 ml-3">
-                Layanan (Coming Soon)
-              </h3>
+          {/* Management Layanan */}
+          <Link href="/admin/layanan">
+            <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors cursor-pointer">
+              <div className="flex items-center mb-4">
+                <DocumentTextIcon className="w-8 h-8 text-orange-400" />
+                <h3 className="text-xl font-semibold text-white ml-3">
+                  Management Layanan
+                </h3>
+              </div>
+              <p className="text-gray-400 mb-4">
+                Kelola permohonan surat keterangan dan layanan publik
+              </p>
+              <div className="flex items-center text-orange-400">
+                <span className="text-sm font-medium">Kelola Sekarang</span>
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
             </div>
-            <p className="text-gray-500 mb-4">
-              Kelola layanan masyarakat
-            </p>
-            <div className="flex items-center text-gray-500">
-              <span className="text-sm font-medium">Segera Hadir</span>
+          </Link>
+
+          {/* Kelola Feedback */}
+          <Link href="/admin/feedback">
+            <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors cursor-pointer">
+              <div className="flex items-center mb-4">
+                <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10 0v10a2 2 0 01-2 2H9a2 2 0 01-2-2V8m0 0V6a2 2 0 012-2h6a2 2 0 012 2v2" />
+                </svg>
+                <h3 className="text-xl font-semibold text-white ml-3">
+                  Kelola Feedback
+                </h3>
+              </div>
+              <p className="text-gray-400 mb-4">
+                Lihat dan kelola masukan serta saran dari pengguna
+              </p>
+              <div className="flex items-center text-purple-400">
+                <span className="text-sm font-medium">Kelola Sekarang</span>
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
     </div>
